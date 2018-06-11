@@ -21,6 +21,7 @@ mod lexer {
     Let,
     Lambda,
     Identifier(String),
+    Number(i32),
     EOF
   }
 
@@ -48,7 +49,7 @@ mod lexer {
     let mut chunk : String =  "".to_string();
 
     for (index, ch) in input.chars().enumerate() {
-      println!("ch: {:?}", ch);
+      // println!("ch: {:?},  chunk: {:?}", ch, chunk);
       if is_whitespace(ch) {
         //flush whatever is in the chunk to the tokenlist
         if !chunk.is_empty() {
@@ -75,10 +76,16 @@ mod lexer {
   }
 
   fn map_keyword(keyword: String) -> Token {
-    match &keyword as &str {
-      "let" => Token::Let,
-      "fn" => Token::Lambda,
-      _ => Token::Identifier(keyword.clone())
+    // println!("mapping keyword to string: {} ", keyword);
+    if is_number(&keyword) {
+      let num: i32 = keyword.parse().unwrap(); 
+      Token::Number(num)
+    } else {
+      match &keyword as &str {
+        "let" => Token::Let,
+        "fn" => Token::Lambda,
+        _ => Token::Identifier(keyword.clone())
+      }
     }
   }
 
@@ -98,12 +105,27 @@ mod lexer {
   
   // returns true if it can be used in a keyword
   fn is_valid_identifier_char(ch : char) -> bool {
-    (('a' < ch) && (ch < 'z')) || (('A' < ch) && (ch < 'Z'))
+    (('a' <= ch) && (ch <= 'z')) || (('A' <= ch) && (ch <= 'Z') || is_digit(ch))
   }
 
   // is whitespace
   fn is_whitespace(ch : char) -> bool {
     (ch == ' ') || (ch == '\n') || (ch == '\t')
+  }
+
+  fn is_digit(ch : char) -> bool {
+    (ch >= '0') && (ch <= '9')
+  }
+
+  fn is_number(ident : &String) -> bool {
+    // its a number if all the chars are numbers
+    let mut has_non_number : bool = false;
+    for ch in ident.chars() {
+      if !is_digit(ch) {
+        has_non_number = true;
+      }
+    }
+    !has_non_number
   }
 
 
@@ -123,7 +145,7 @@ mod lexer {
     ];
 
     let lexer:Lexer = Lexer::new(input);
-    println!("the lexing tokens: {:?}", lexer);
+    // println!("the lexing tokens: {:?}", lexer);
     for (index, token) in lexer.tokens.iter().enumerate() {
       assert_eq!(token, &output[index]);
     }
@@ -131,8 +153,9 @@ mod lexer {
     assert_eq!(2, 2);
   }
 
+  #[test]
   fn test_for_keywords() {
-    let _input = "
+    let input = "
       let five = 5;
       let ten = 10;
       let add = fn(x, y) {
@@ -140,7 +163,8 @@ mod lexer {
       };
       let result = add(five, ten);
     ".to_string();
-
+    let lexer:Lexer = Lexer::new(input);
+    println!("the lexing tokens 2: {:?}", lexer.tokens);
 
   }
 }
