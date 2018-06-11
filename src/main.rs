@@ -16,6 +16,7 @@ mod lexer {
     BracketClose,
     Comma,
     Semicolon,
+    Keyword(String),
     Other(char)
   }
 
@@ -40,7 +41,6 @@ mod lexer {
         tokens: tokens
       };
     }
-
   }
 
   fn map_to_token(ch : char) -> Token {
@@ -55,6 +55,10 @@ mod lexer {
       ';' => Token::Semicolon,
       _ => Token::Other(ch)
     }
+  }
+
+  fn is_letter(ch : char) -> bool {
+    true
   }
 
 
