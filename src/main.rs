@@ -15,6 +15,14 @@ mod lexer {
     ParenClose,
     BracketOpen,
     BracketClose,
+
+    ForwardSlash,
+    BackwardSlash,
+    Equals,
+    NotEqual,
+    Asterix,
+    Bang,
+
     Comma,
     Semicolon,
     Other(char),
@@ -99,6 +107,9 @@ mod lexer {
       '}' => Token::BracketClose,
       ',' => Token::Comma,
       ';' => Token::Semicolon,
+      '!' => Token::Bang,
+      '/' => Token::ForwardSlash,
+      '\\' => Token::BackwardSlash,
       _ => Token::Other(ch)
     }
   }
@@ -166,6 +177,23 @@ mod lexer {
     let lexer:Lexer = Lexer::new(input);
     println!("the lexing tokens 2: {:?}", lexer.tokens);
 
+    /*
+    let test_list: Vec<Token> = vec![
+      Let,
+      Identifier("five"),
+      Assign,
+      Number(5),
+      Semicolon,
+      Let,
+      Identifier("ten"),
+      Assign,
+      Number(10),
+      Semicolon, Let, Identifier("add"), Assign, Lambda, ParenOpen, Identifier("x"), Comma, Identifier("y"), ParenClose, BracketOpen, Identifier("x"), Plus, Identifier("y"), Semicolon, BracketClose, Semicolon, Let, Identifier("result"), Assign, Identifier("add"), ParenOpen, Identifier("five"), Comma, Identifier("ten"), ParenClose, Semicolon, EOF];
+    */
+
+    assert_eq!(lexer.tokens[0], Token::Let);
+
+    assert_eq!(lexer.tokens[6], Token::Identifier("ten".to_string()));
   }
 }
 
