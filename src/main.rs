@@ -83,7 +83,7 @@ mod lexer {
             //add it to the chunk
             chunk.push(ch);
             continue
-          } else if is_complex_modifier(ch) {
+          } else {
             match charTerator.peek() {
               None => {
                 if !chunk.is_empty() {
@@ -110,15 +110,6 @@ mod lexer {
                 }
               }
             }
-          } else {
-            // clear the chunk to the list
-            if !chunk.is_empty() {
-              tokens.push(map_keyword(chunk.clone()));
-              chunk.clear();
-            }
-            // add the char as a token
-            tokens.push(map_to_token(ch));
-            continue
           }
         }
       };
