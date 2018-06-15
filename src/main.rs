@@ -1,5 +1,6 @@
 
 use std::collections::HashMap;
+use std::option::Option;
 
 #[cfg(test)]
 mod lexer {
@@ -22,6 +23,10 @@ mod lexer {
     NotEqual,
     Asterix,
     Bang,
+    GreaterThan,
+    LessThan,
+    GreaterThanOrEqual,
+    LessThanOrEqual,
 
     Comma,
     Semicolon,
@@ -32,6 +37,8 @@ mod lexer {
     Number(i32),
     EOF
   }
+
+  
 
   #[derive(Debug)]
   #[derive(PartialEq)]
@@ -52,36 +59,122 @@ mod lexer {
     }
   }
 
+
   fn tokenizer (input : &String) -> Vec<Token>{
     let mut tokens: Vec<Token> = vec![];
     let mut chunk : String =  "".to_string();
+    let mut skip : bool = false;
+    let mut index : usize = 0;
+    let mut charTerator = input.chars().peekable();
 
-    for (index, ch) in input.chars().enumerate() {
-      // println!("ch: {:?},  chunk: {:?}", ch, chunk);
-      if is_whitespace(ch) {
-        //flush whatever is in the chunk to the tokenlist
-        if !chunk.is_empty() {
-          tokens.push(map_keyword(chunk.clone()));
-          chunk.clear();
+    loop {
+      match charTerator.next() {
+        Option::None => {
+          break;
+        },
+        Option::Some(ch) => {
+          if is_whitespace(ch) {
+            if !chunk.is_empty() {
+              tokens.push(map_keyword(chunk.clone()));
+              chunk.clear();
+            }
+            continue;
+          } else if is_valid_identifier_char(ch) {
+            //add it to the chunk
+            chunk.push(ch);
+            continue
+          } else if is_complex_modifier(ch) {
+            match charTerator.peek() {
+              None => {
+                if !chunk.is_empty() {
+                  tokens.push(map_keyword(chunk.clone()));
+                  chunk.clear();
+                }
+                // add the char as a token
+                tokens.push(map_to_token(ch));
+              }
+              Some(&peek) => {
+                match get_complex_token(ch, peek) {
+                  None => {
+                    if !chunk.is_empty() {
+                      tokens.push(map_keyword(chunk.clone()));
+                      chunk.clear();
+                    }
+                    // add the char as a token
+                    tokens.push(map_to_token(ch));
+                  }
+                  Some(token) => {
+                    charTerator.next(); // to skip the next one
+                    tokens.push(token);
+                  }
+                }
+              }
+            }
+          } else {
+            // clear the chunk to the list
+            if !chunk.is_empty() {
+              tokens.push(map_keyword(chunk.clone()));
+              chunk.clear();
+            }
+            // add the char as a token
+            tokens.push(map_to_token(ch));
+            continue
+          }
         }
-      } else if is_valid_identifier_char(ch) {
-        //add it to the chunk
-        chunk.push(ch);
-      } else {
-        // clear the chunk to the list
-        if !chunk.is_empty() {
-          tokens.push(map_keyword(chunk.clone()));
-          chunk.clear();
-        }
-        // add the char as a token
-        tokens.push(map_to_token(ch));
-      }
+      };
     }
 
     tokens.push(Token::EOF);
 
     return tokens;
   }
+
+  fn get_complex_token(ch: char, peek: char) -> Option<Token> {
+    match ch {
+      '=' => match peek {
+        '=' => Some(Token::Equals),
+        _ => None
+      },
+      '!' => match peek {
+        '=' => Some(Token::NotEqual),
+        _ => None
+      }
+      '>' => match peek {
+        '=' => Some(Token::GreaterThanOrEqual),
+        _ => None
+      }
+      '<' => match peek {
+        '=' => Some(Token::LessThanOrEqual),
+        _ => None
+      }
+      _ => None
+    }
+  }
+
+  fn is_complex_modifier(ch1: char) -> bool {
+    match ch1 {
+      '!' => true,
+      '=' => true,
+      '>' => true,
+      '<' => true,
+      _ => false
+    }
+  }
+
+  enum NextChar {
+    EOF,
+    Peek(char)
+  }
+
+  fn peek_ahead(index: usize, aStr: &Vec<char>) -> NextChar {
+    if index >= aStr.len() - 1 {
+      NextChar::EOF
+    } else {
+      NextChar::Peek(aStr[index])
+    }
+  }
+
+
 
   fn map_keyword(keyword: String) -> Token {
     // println!("mapping keyword to string: {} ", keyword);
@@ -110,6 +203,8 @@ mod lexer {
       '!' => Token::Bang,
       '/' => Token::ForwardSlash,
       '\\' => Token::BackwardSlash,
+      '>' => Token::GreaterThan,
+      '<' => Token::LessThan,
       _ => Token::Other(ch)
     }
   }
@@ -175,25 +270,31 @@ mod lexer {
       let result = add(five, ten);
     ".to_string();
     let lexer:Lexer = Lexer::new(input);
-    println!("the lexing tokens 2: {:?}", lexer.tokens);
-
-    /*
-    let test_list: Vec<Token> = vec![
-      Let,
-      Identifier("five"),
-      Assign,
-      Number(5),
-      Semicolon,
-      Let,
-      Identifier("ten"),
-      Assign,
-      Number(10),
-      Semicolon, Let, Identifier("add"), Assign, Lambda, ParenOpen, Identifier("x"), Comma, Identifier("y"), ParenClose, BracketOpen, Identifier("x"), Plus, Identifier("y"), Semicolon, BracketClose, Semicolon, Let, Identifier("result"), Assign, Identifier("add"), ParenOpen, Identifier("five"), Comma, Identifier("ten"), ParenClose, Semicolon, EOF];
-    */
+    //println!("the lexing tokens 2: {:?}", lexer.tokens);
 
     assert_eq!(lexer.tokens[0], Token::Let);
 
     assert_eq!(lexer.tokens[6], Token::Identifier("ten".to_string()));
+  }
+
+  #[test]
+  fn test_special_tokens() {
+    // special tokens afe tokens that aren't keyword identifiers but are
+    // significant to look ahead to see whats going on.
+    let input = "
+      let five = 5;
+      five == 5;
+      five != 5;
+      five >= 5;
+      five <= 5;
+    ".to_string();
+    let lexer:Lexer = Lexer::new(input);
+    println!("the lexing tokens 3: {:?}", lexer.tokens);
+    assert_eq!(lexer.tokens[6], Token::Equals);
+    assert_eq!(lexer.tokens[10], Token::NotEqual);
+    assert_eq!(lexer.tokens[14], Token::GreaterThanOrEqual);
+    assert_eq!(lexer.tokens[18], Token::LessThanOrEqual);
+
   }
 }
 
