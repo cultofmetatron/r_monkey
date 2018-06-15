@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::option::Option;
 
-#[cfg(test)]
+//#[cfg(test)]
 //mod lexer {
 
   #[derive(Debug)]
